@@ -1,0 +1,27 @@
+---
+- name: Copy sshd_banner to /etc/ssh/
+  template:
+    src: files/sshd_banner
+    dest: /etc/ssh/sshd_banner
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Configure sshd_config to use banner
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '^([# \t]+Banner|Banner)[ \t].*'
+    line: 'Banner /etc/ssh/sshd_banner'
+    owner: root
+    group: root
+    mode: 0644
+    validate: 'sshd -tf %s'
+    backup: yes
+
+- name: Remove 10-help-text from login messages
+  file:
+    path: /etc/update-motd.d/10-help-text
+    mode: 0000
+    owner: root
+    group: root
+  when: ( ansible_distribution == "Ubuntu" )
