@@ -34,8 +34,11 @@ This role performs all the steps need to join a Linux server to an Active Direct
 ## Variables
 
 **adm_user** : Username of domain admin or user allowed to join machines to the domain
+
 **adm_password** : Password for the domain admin or privileged user
+
 **prov_hostname** : If used to provision a server in vCenter, the hostname of the newly created VM.
+
 **prov_ip_addr** : If used to provision a server in vCenter, the IP address of the newly created VM.
 
 ## Written By
