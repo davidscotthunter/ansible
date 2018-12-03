@@ -1,0 +1,24 @@
+---
+- name: Restart ntpd
+  systemd:
+    name: ntpd
+    state: restarted
+    daemon_reload: yes
+
+- name: Restart ntp
+  systemd:
+    name: ntp
+    state: restarted
+    daemon_reload: yes
+
+- name: Restart sssd
+  systemd:
+    name: sssd
+    state: restarted
+    daemon_reload: yes
+
+- name: Restart sshd
+  systemd:
+    name: sshd
+    state: reloaded
+    daemon_reload: yes
