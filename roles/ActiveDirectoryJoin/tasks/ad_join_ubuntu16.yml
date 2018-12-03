@@ -1,0 +1,110 @@
+# Ubuntu 16 Active Directory join using realmd
+# This task is meant to be used with Ansible Tower and called from the JoinDomain role.
+
+---
+- name: Set FQDN to enable auto DNS registering
+  command: "hostnamectl set-hostname {{ prov_hostname }}.corp.example.com"
+  when: ( prov_hostname is defined )
+
+- name: Set FDQN to enable auto DNS registering
+  command: "hostnamectl set-hostname {{ ansible_hostname }}.corp.example.com"
+  when: ( 'corp.example.com' not in ansible_fqdn )
+
+- name: Install required packages
+  apt:
+    name: "{{ item }}"
+    state: latest
+    update_cache: yes
+  with_items:
+  - realmd
+  - sssd
+  - sssd-tools
+  - adcli
+  - ntp
+  - ntpdate
+  - samba-common
+  - python-pip
+
+# Install pip and related required packages
+
+- name: Upgrade pip to latest version
+  command: pip install --upgrade pip
+- name: Install pip setuptools
+  command: pip install setuptools
+- name: Install python pexpect package via pip
+  command: pip install pexpect
+
+# Configuring ntp to use domain controllers as time servers
+
+# Comments out any lines starting with "server" and containing "centos", ending with "iburst".
+# Why sed? Using sed was easier for me than trying to figure out how to get the backrefs to work in the
+# replace module.
+- name: Comment out default Ubuntu pool
+  command: /bin/sed -i '/^server.*ubuntu.*iburst$/s/^/#\ /g' /etc/ntp.conf
+
+- name: Add dc02.corp.example.com to ntp.conf
+  lineinfile:
+    path: /etc/ntp.conf
+    line: 'server dc02.corp.example.com iburst'
+  notify: Restart ntp
+
+- name: Add dc01.corp.example.com to ntp.conf
+  lineinfile:
+    path: /etc/ntp.conf
+    line: 'server dc01.corp.example.com iburst'
+  notify: Restart ntp
+
+- name: Configure realmd
+  template:
+    src: realmd.conf.j2
+    dest: /etc/realmd.conf
+
+- name: Install sane krb5.conf file
+  template:
+    src: krb5.conf
+    dest: /etc/krb5.conf
+    owner: root
+    group: root
+    mode: 0600
+
+- name: Install Kerberos 5 client
+  apt:
+    name: krb5-user
+    state: latest
+
+- name: Join the domain
+  expect:
+    command: "/usr/sbin/realm join -U {{ adm_user }} corp.example.com --install=/"
+    responses:
+      '^Password for.*:': "{{ adm_password }}"
+    timeout: 15
+  ignore_errors: true
+
+- name: Enable creation of home directory on login
+  lineinfile:
+    path: /etc/pam.d/common-session
+    line: 'session optional pam_mkhomedir.so'
+
+# Configuration file copy for SSSD
+- name: Install sane sssd.conf file
+  template:
+    src: sssd.conf
+    dest: /etc/sssd/sssd.conf
+    owner: root
+    group: root
+    mode: 0600
+  notify: Restart sssd
+
+# Create a corp.example.com directory under home with correct permissions
+- name:
+  file:
+    path: /home/corp.example.com
+    state: directory
+    mode: 0755
+    owner: root
+    group: root
+
+# Disable apparmor for sssd
+- name: Disable apparmor profile for sssd
+  shell: "/usr/sbin/aa-disable usr.sbin.sssd"
+  ignore_errors: true
