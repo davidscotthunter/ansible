@@ -1,0 +1,133 @@
+# CentOS 7 Active Directory join using realmd
+
+---
+- name: Set FQDN to enable auto DNS registering
+  command: "hostnamectl set-hostname {{ prov_hostname }}.corp.example.com"
+  when: ( prov_hostname is defined )
+
+- name: Set FDQN to enable auto DNS registering
+  command: "hostnamectl set-hostname {{ ansible_hostname }}.corp.example.com"
+  when: ( 'corp.example.com' not in ansible_fqdn )
+
+- name: Install prerequisites (EPEL)
+  yum:
+    name: epel-release
+    state: latest
+    update_cache: yes
+
+- name: Install required packages
+  yum:
+    name: "{{ item }}"
+    state: latest
+    update_cache: yes
+  with_items:
+  - adcli
+  - realmd
+  - sssd
+  - sssd-tools
+  - ntp
+  - ntpdate
+  - samba-common
+  - samba-common-tools
+  - oddjob
+  - oddjob-mkhomedir
+  - python-pip
+
+# Install pip and related required packages
+- name: Upgrade pip to latest version
+  command: /bin/pip install --upgrade pip
+- name: Install pip setuptools
+  command: /bin/pip install setuptools
+- name: Install python pexpect package via pip
+  command: /bin/pip install pexpect
+
+# Configuring ntp to use domain controllers as time servers
+
+# Comments out any lines starting with "server" and containing "centos", ending with "iburst".
+# Why sed? Using sed was easier for me than trying to figure out how to get the backrefs to work in the
+# replace module.
+- name: Comment out default CentOS pool
+  command: /bin/sed -i '/^server.*centos.*iburst$/s/^/#\ /g' /etc/ntp.conf
+
+- name: Add dc02.corp.example.com to ntp.conf
+  lineinfile:
+    path: /etc/ntp.conf
+    line: 'server dc02.corp.example.com iburst'
+  notify: Restart ntpd
+
+- name: Add dc01.corp.example.com to ntp.conf
+  lineinfile:
+    path: /etc/ntp.conf
+    line: 'server dc01.corp.example.com iburst'
+  notify: Restart ntpd
+
+- name: Configure realmd
+  template:
+    src: realmd.conf.j2
+    dest: /etc/realmd.conf
+
+- name: Install sane krb5.conf file
+  template:
+    src: krb5.conf
+    dest: /etc/krb5.conf
+    owner: root
+    group: root
+    mode: 0644
+
+- name: Install Kerberos 5 client
+  yum:
+    name: krb5-workstation
+    state: latest
+
+# This reboot is to address an issue with realm for CentOS;
+# Like it won't work until after the system has been rebooted.
+- name: Reboot the system
+  command: /sbin/shutdown -r +1
+  async: 0
+  poll: 0
+  ignore_errors: true
+
+- name: Wait for the host to come back up
+  local_action:
+    module: wait_for
+    host: "{{ prov_ip_addr }}"
+    port: 22
+    delay: 90
+    state: started
+  when: ( prov_ip_addr is defined )
+
+- name: Wait for the host to come back up
+  local_action:
+    module: wait_for
+    host: "{{ ansible_hostname }}"
+    port: 22
+    delay: 90
+    state: started
+  when: ( prov_ip_addr is not defined )
+
+- name: Join the domain
+  expect:
+    command: "/sbin/realm join -U {{ adm_user }}@corp.example.com corp.example.com"
+    responses:
+      ^Password.* : "{{ adm_password }}"
+    timeout: 15
+  ignore_errors: true
+
+# Configuration file copy for Kerberos and SSSD
+- name: Install sane sssd.conf file
+  template:
+    src: sssd.conf
+    dest: /etc/sssd/sssd.conf
+    owner: root
+    group: root
+    mode: 0600
+  notify: Restart sssd
+
+# Create a corp.example.com directory under home with correct permissions
+- name:
+  file:
+    path: /home/corp.example.com
+    state: directory
+    mode: 0755
+    owner: root
+    group: root

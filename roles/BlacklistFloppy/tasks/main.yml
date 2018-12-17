@@ -1,0 +1,27 @@
+---
+- name: Remove references to /dev/fd0 from /etc/fstab
+  lineinfile:
+    path: /etc/fstab
+    state: absent
+    regexp: '^\/dev\/fd0'
+
+- name: Create blacklist-floppy.conf file in /etc/modprobe.d/
+  file:
+    path: /etc/modprobe.d/blacklist-floppy.conf
+    state: touch
+    mode: 0644
+    owner: root
+    group: root
+
+- name: Enter config into blacklist-floppy.conf
+  lineinfile:
+    path: /etc/modprobe.d/blacklist-floppy.conf
+    state: present
+    line: 'blacklist floppy'
+
+- name: Remove floppy kernel module
+  command: "sudo rmmod floppy"
+
+- name: Update initramfs
+  command: "sudo update-initramfs -u"
+  when: ( ansible_distribution == "Ubuntu" )

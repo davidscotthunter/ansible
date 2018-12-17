@@ -1,0 +1,26 @@
+---
+- name: Remove all references to AuthorizedKeysCommand directive
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '.*AuthorizedKeysCommandUser.*'
+    state: absent
+
+- name: Add AuthorizedKeysCommand directive to /etc/ssh/sshd_config
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    line: 'AuthorizedKeysCommand /usr/bin/sss_ssh_authorizedkeys'
+  notify: Reload sshd config
+
+- name: Add AuthorizedKeysCommandUser directive to /etc/ssh/sshd_config
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    line: 'AuthorizedKeysCommandUser nobody'
+  notify: Reload sshd config
+
+- name: Enable public key authentication
+  lineinfile:
+    path: /etc/ssh/sshd_config
+    regexp: '.*PubkeyAuthentication.*'
+    line: 'PubkeyAuthentication yes'
+    validate: 'sshd -tf %s'
+  notify: Reload sshd config
