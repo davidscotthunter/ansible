@@ -1,12 +1,6 @@
 ---
-- name: Systemd sshd reload
+- name: Reload sshd
   systemd:
     name: sshd
     state: reloaded
   when: ( ansible_service_mgr == "systemd" )
-
-  name: Upstart sshd reload
-  service:
-    name: sshd
-    state: reloaded
-  when: ( ansible_service_mgr == "upstart" or "sysvinit" )
