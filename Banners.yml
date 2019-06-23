@@ -8,5 +8,7 @@
   pre_tasks:
     - setup:
         filter: ansible_service_mgr
+    - setup:
+        filter: ansible_distribution
   roles:
     - { role: ansible-role-sshdBanners }
