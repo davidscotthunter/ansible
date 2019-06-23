@@ -4,5 +4,9 @@
   become: True
   become_user: root
   become_method: sudo
+  gather_facts: no
+  pre-tasks:
+    - setup:
+        filter: ansible_service_mgr
   roles:
     - { role: ansible-role-sshdBanners }
