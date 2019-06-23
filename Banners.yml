@@ -2,6 +2,7 @@
 - hosts: all
   remote_user: ansible
   become: yes
+  become_user: root
   become_method: sudo
   roles:
     - { role: ansible-role-sshdBanners }
