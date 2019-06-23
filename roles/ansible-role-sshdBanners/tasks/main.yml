@@ -18,8 +18,8 @@
     validate: 'sshd -tf %s'
     backup: yes
   notify:
-    - Reload sshd_config 1
-    - Reload sshd_config 2
+    - Systemd sshd reload
+    - Upstart sshd reload
 
 - name: Remove 10-help-text from login messages
   file:
