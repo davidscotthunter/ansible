@@ -1,13 +1,12 @@
 ---
-- handlers:
-    name: Reload sshd_config (systemd)
-    systemd:
-      name: sshd
-      state: reloaded
-    when: ( ansible_service_mgr == "systemd" )
+- name: Reload sshd_config 1
+  systemd:
+    name: sshd
+    state: reloaded
+  when: ( ansible_service_mgr == "systemd" )
 
-    name: Reload sshd_config (upstart or sysvinit)
-    service:
-      name: sshd
-      state: reload
-    when: ( ansible_service_mgr == "upstart" or "sysvinit" )
+  name: Reload sshd_config 2
+  service:
+    name: sshd
+    state: reload
+  when: ( ansible_service_mgr == "upstart" or "sysvinit" )
