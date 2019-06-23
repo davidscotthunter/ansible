@@ -4,6 +4,5 @@
   become: True
   become_user: root
   become_method: sudo
-  connection: paramiko
   roles:
     - { role: ansible-role-sshdBanners }
