@@ -20,10 +20,14 @@
   notify:
     - Reload sshd
 
-- name: Remove 10-help-text from login messages
+- name: Remove Ubuntu ads from login messages
   file:
-    path: /etc/update-motd.d/10-help-text
+    path: "/etc/update-motd.d/{{ item }}"
     mode: 0000
     owner: root
     group: root
+  with_items:
+    - 10-help-text
+    - 50-landscape-sysinfo
+    - 50-motd-news
   when: ( ansible_distribution == "Ubuntu" )
