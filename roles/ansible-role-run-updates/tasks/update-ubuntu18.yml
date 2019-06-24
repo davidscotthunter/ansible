@@ -3,7 +3,7 @@
   shell: while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 1; done;
 
 - name: Resolve any messed up dependences
-  shell: dpkg -- configure -a
+  shell: dpkg --configure -a
 
 - name: Upgrade all packages, update cache, remove unneeded dependencies and clean cache
   apt:
