@@ -5,7 +5,6 @@
   become_user: root
   become_method: sudo
   gather_facts: no
-  connection: paramiko
   pre_tasks:
     - setup:
         gather_subset: min
