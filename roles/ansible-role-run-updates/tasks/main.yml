@@ -1,0 +1,12 @@
+---
+- name: Run updates for CentOS 7
+  include_tasks: update-centos7.yml
+  when: ( ansible_distribution == "CentOS" and ansible_distribution_major_version == "7" )
+
+- name: Run updates for Ubuntu 16.04
+  include_tasks: update-ubuntu16.yml
+  when: ( ansible_distribution == "Ubuntu" and ansible_distribution_major_version == "16" )
+
+- name: Run updates for Ubuntu 18.04
+  include_tasks: update-ubuntu18.yml
+  when: ( ansible_distribution == "Ubuntu" and ansible_distribution_major_version == "18" )

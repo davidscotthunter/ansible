@@ -1,0 +1,36 @@
+---
+- name: Wait for automatic system updates
+  shell: while sudo fuser /var/lib/dpkg/lock >/dev/null 2>&1; do sleep 1; done;
+
+- name: Resolve any messed up dependences
+  shell: dpkg -- configure -a
+
+- name: Upgrade all packages, update cache, remove unneeded dependencies and clean cache
+  apt:
+    update_cache: yes
+    upgrade: dist
+    autoremove: yes
+    autoclean: yes
+  ignore_errors: yes
+  async: 300
+  poll: 60
+
+- name: Check if reboot is required
+  stat:
+    path: /var/run/reboot-required
+  register: reboot_required
+
+- name: Reboot the system if necessary
+  command: /bin/bash -c "/sbin/shutdown -r +1 'System is rebooting for system updates'"
+  args:
+    removes: /var/run/reboot-required
+  ignore_errors: yes
+
+- name: Wait for system to come back up
+  local_action:
+    module: wait_for
+    host: "{{ ansible_default_ipv4.address }}"
+    port: 22
+    delay: 90
+    state: started
+  when: ( reboot_required.stat.exists == True )
